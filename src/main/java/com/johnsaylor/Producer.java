@@ -4,6 +4,8 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import scala.Int;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 public class Producer {
@@ -17,20 +19,38 @@ public class Producer {
         props.put("linger.ms", 1);
         props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("producer.type", "async");
 
         this.producer = new KafkaProducer<>(props);
     }
 
     public void send(String tx) {
-        String topic = "john";
-        ProducerRecord<String, String> record = new ProducerRecord<>(topic, getAmount(tx), tx);
+        ProducerRecord<String, String> recordA = new ProducerRecord<>("all_transactions", getAmount(tx), tx);
+
         try {
 
-            producer.send(record);
+            producer.send(recordA);
 
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
+
+        List<String> topics = new ArrayList<>();
+        topics.add("transfer");
+        topics.add("cash_out");
+
+        if (!topics.contains(getTopic(tx))) return;
+
+        ProducerRecord<String, String> recordB = new ProducerRecord<>(getTopic(tx), getAmount(tx), tx);
+
+        try {
+
+            producer.send(recordB);
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
     }
 
     public String getAmount(String tx) {
@@ -38,6 +58,16 @@ public class Producer {
         String amount = fields[2].split("\\.")[0];
         System.out.println("Kafka Producer: " + amount + " " + tx);
         return amount;
+    }
+
+    private String getTopic(String tx) {
+        String[] fields = tx.split(",");
+        return fields[1].toLowerCase();
+    }
+
+    private Boolean isTransfer(String tx) {
+        String[] fields = tx.split(",");
+        return fields[1].equals("TRANSFER");
     }
 
     public void test() {
