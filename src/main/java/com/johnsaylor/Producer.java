@@ -13,44 +13,34 @@ public class Producer {
     KafkaProducer<String, String> producer;
 
     public Producer(){
-        props.put("bootstrap.servers", "localhost:9092");
+        props.put("bootstrap.servers", "165.227.99.49:9092");
         props.put("acks", "all");
         props.put("retries", 0);
         props.put("linger.ms", 1);
         props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        props.put("producer.type", "async");
 
         this.producer = new KafkaProducer<>(props);
     }
 
-    public void send(String tx) {
-        ProducerRecord<String, String> recordA = new ProducerRecord<>("all_transactions", getAmount(tx), tx);
+    public void send(String transaction) {
+        ProducerRecord<String, String> recordA = new ProducerRecord<>("all_transactions", getAmount(transaction), transaction);
 
         try {
-
             producer.send(recordA);
-
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
 
-        List<String> topics = new ArrayList<>();
-        topics.add("transfer");
-        topics.add("cash_out");
+        if (isCashOut(transaction) || isTransfer(transaction)) {
+            ProducerRecord<String, String> recordB = new ProducerRecord<>("fraud_detection", getAmount(transaction), transaction);
 
-        if (!topics.contains(getTopic(tx))) return;
-
-        ProducerRecord<String, String> recordB = new ProducerRecord<>(getTopic(tx), getAmount(tx), tx);
-
-        try {
-
-            producer.send(recordB);
-
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
+            try {
+                producer.send(recordB);
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
         }
-
     }
 
     public String getAmount(String tx) {
@@ -70,11 +60,15 @@ public class Producer {
         return fields[1].equals("TRANSFER");
     }
 
+    private Boolean isCashOut(String tx) {
+        String[] fields = tx.split(",");
+        return fields[1].equals("CASH_OUT");
+    }
+
     public void test() {
         String topic = "john";
 
         for (int i = 0; i < 100; i++) {
-            System.out.println(Integer.toString(i));
             ProducerRecord record = new ProducerRecord(topic, Integer.toString(i), ("234523JOHN,:LK".concat(Integer.toString(i))));
             producer.send(record);
         }

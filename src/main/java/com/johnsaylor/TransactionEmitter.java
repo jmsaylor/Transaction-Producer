@@ -12,7 +12,7 @@ public class TransactionEmitter {
     public TransactionEmitter() {
         try {
             this.producer = new Producer();
-            this.reader = new BufferedReader(new FileReader("/home/jm/Data/PS_20174392719_1491204439457_log.csv"));
+            this.reader = new BufferedReader(new FileReader("/home/john/Data/PS_20174392719_1491204439457_log.csv"));
             deleteHeader();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
